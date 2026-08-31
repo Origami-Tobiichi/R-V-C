@@ -47,12 +47,20 @@ export default function Login() {
 
   const handlePhoneLogin = async () => {
     try {
-      // Perbaikan: berikan parameter kedua yang valid (size: 'invisible')
+      // Ambil container reCAPTCHA
+      const container = document.getElementById('recaptcha-container');
+      if (!container) {
+        alert('Elemen reCAPTCHA tidak ditemukan');
+        return;
+      }
+
+      // Inisialisasi RecaptchaVerifier dengan benar
       const recaptchaVerifier = new RecaptchaVerifier(
-        'recaptcha-container',
-        { size: 'invisible' },
-        auth
+        container, // element
+        { size: 'invisible' }, // parameter
+        auth // auth instance
       );
+
       const confirmation = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
       setConfirmResult(confirmation);
       alert('Kode verifikasi dikirim!');
