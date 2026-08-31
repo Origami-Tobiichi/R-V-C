@@ -14,13 +14,19 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
-      const docRef = doc(firestore, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setGender(data.gender || '');
-        setAge(data.age || '');
-        setCountry(data.country || '');
+      try {
+        const docRef = doc(firestore, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setGender(data.gender || '');
+          setAge(data.age || '');
+          setCountry(data.country || '');
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error(error.message);
+        }
       }
     };
     fetchProfile();
@@ -28,8 +34,16 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!user) return;
-    await setDoc(doc(firestore, 'users', user.uid), { gender, age, country }, { merge: true });
-    router.push('/');
+    try {
+      await setDoc(doc(firestore, 'users', user.uid), { gender, age, country }, { merge: true });
+      router.push('/');
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('Gagal menyimpan profil');
+      }
+    }
   };
 
   return (
