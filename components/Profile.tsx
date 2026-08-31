@@ -24,9 +24,7 @@ export default function Profile() {
           setCountry(data.country || '');
         }
       } catch (error) {
-        if (error instanceof Error) {
-          console.error(error.message);
-        }
+        console.error('Error fetching profile:', error);
       }
     };
     fetchProfile();
@@ -52,7 +50,11 @@ export default function Profile() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium">Gender</label>
-          <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full p-2 border rounded">
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full p-2 border rounded"
+          >
             <option value="">Pilih</option>
             <option value="Pria">Pria</option>
             <option value="Wanita">Wanita</option>
@@ -61,13 +63,26 @@ export default function Profile() {
         </div>
         <div>
           <label className="block text-sm font-medium">Usia</label>
-          <input type="number" value={age} onChange={(e) => setAge(e.target.value)} className="w-full p-2 border rounded" />
+          <input
+            type="number"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            className="w-full p-2 border rounded"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium">Negara</label>
-          <input type="text" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Indonesia, USA, dll." className="w-full p-2 border rounded" />
+          <input
+            type="text"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            placeholder="Indonesia, USA, dll."
+            className="w-full p-2 border rounded"
+          />
         </div>
-        <button onClick={handleSave} className="w-full bg-blue-500 text-white py-2 rounded">Simpan</button>
+        <button onClick={handleSave} className="w-full bg-blue-500 text-white py-2 rounded">
+          Simpan
+        </button>
       </div>
     </div>
   );
