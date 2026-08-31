@@ -2,20 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { useVideo } from '../context/VideoContext';
 
 export default function VideoCall() {
-  const { localStream, remoteStream, isCalling, toggleMic, toggleCam, startCall, stopCall } = useVideo();
+  const {
+    localStream,
+    remoteStream,
+    isCalling,
+    toggleMic,
+    toggleCam,
+    startCall,
+    stopCall,
+    preference,
+    setPreference,
+  } = useVideo();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
 
-  // Pasang local stream ke elemen video lokal
   useEffect(() => {
     if (localStream && localVideoRef.current) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
-  // Pasang remote stream ke elemen video remote
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
@@ -35,17 +43,51 @@ export default function VideoCall() {
   return (
     <div className="flex flex-col items-center p-4">
       <h1 className="text-2xl font-bold mb-4">Video Call Random</h1>
+
+      {/* Preferensi gender */}
+      <div className="mb-4 flex gap-4 items-center">
+        <span className="font-medium">Cari:</span>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="preference"
+            value="all"
+            checked={preference === 'all'}
+            onChange={() => setPreference('all')}
+          />
+          Semua
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="preference"
+            value="opposite"
+            checked={preference === 'opposite'}
+            onChange={() => setPreference('opposite')}
+          />
+          Lawan Jenis
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="preference"
+            value="same"
+            checked={preference === 'same'}
+            onChange={() => setPreference('same')}
+          />
+          Sejenis
+        </label>
+      </div>
+
       <div className="relative w-full max-w-4xl aspect-video bg-gray-800 rounded-lg overflow-hidden">
         {isCalling ? (
           <>
-            {/* Remote video (besar) */}
             <video
               ref={remoteVideoRef}
               autoPlay
               playsInline
               className="w-full h-full object-cover"
             />
-            {/* Local video (kecil di pojok kanan bawah) */}
             <video
               ref={localVideoRef}
               autoPlay
@@ -60,6 +102,7 @@ export default function VideoCall() {
           </div>
         )}
       </div>
+
       <div className="flex flex-wrap gap-4 mt-4 justify-center">
         <button
           onClick={handleToggleMic}
