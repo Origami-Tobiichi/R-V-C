@@ -19,15 +19,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Fungsi untuk membuat RecaptchaVerifier
+  // Fungsi untuk membuat RecaptchaVerifier dengan type assertion
   const getRecaptchaVerifier = () => {
-    // Pastikan container ada
     const container = document.getElementById('recaptcha-container');
     if (!container) {
       throw new Error('Elemen reCAPTCHA tidak ditemukan. Refresh halaman.');
     }
-    // Gunakan string selector, bukan elemen, untuk menghindari konflik tipe
-    return new RecaptchaVerifier(
+    // Gunakan 'as any' untuk menghindari konflik tipe TypeScript
+    return new (RecaptchaVerifier as any)(
       'recaptcha-container',
       { size: 'invisible' },
       auth
@@ -66,7 +65,6 @@ export default function Login() {
       return;
     }
 
-    // Format nomor telepon internasional
     let phoneNumber = phone;
     if (!phone.startsWith('+')) {
       phoneNumber = '+62' + phone.replace(/^0+/, '');
@@ -74,9 +72,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      // Buat RecaptchaVerifier baru setiap kali
       const verifier = getRecaptchaVerifier();
-      // Render reCAPTCHA
       await verifier.render();
 
       const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifier);
@@ -88,7 +84,7 @@ export default function Login() {
         alert('Nomor telepon tidak valid. Gunakan format internasional (contoh: +62812...).');
       } else if (error.code === 'auth/too-many-requests') {
         alert('Terlalu banyak percobaan. Coba lagi nanti.');
-      } else if (error.message.includes('appVerificationDisabledForTesting')) {
+      } else if (error.message?.includes('appVerificationDisabledForTesting')) {
         alert('Gagal memverifikasi. Pastikan reCAPTCHA dimuat dan coba lagi.');
       } else {
         alert(error.message || 'Gagal mengirim kode verifikasi.');
@@ -189,7 +185,6 @@ export default function Login() {
         )}
       </div>
 
-      {/* Container untuk reCAPTCHA */}
       <div id="recaptcha-container" className="mt-4"></div>
 
       <p className="mt-4 text-center">
