@@ -13,18 +13,14 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(''); // Reset error sebelumnya
-
+    setErrorMessage('');
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName });
-      router.push('/profile');
+      router.push('/profile'); // arahkan ke pengisian profil
     } catch (error: any) {
-      // Tangkap error spesifik dari Firebase
       if (error.code === 'auth/email-already-in-use') {
-        setErrorMessage(
-          'Email ini sudah terdaftar. Silakan login menggunakan akun Anda.'
-        );
+        setErrorMessage('Email ini sudah terdaftar. Silakan login.');
       } else if (error.code === 'auth/weak-password') {
         setErrorMessage('Password terlalu lemah. Gunakan minimal 6 karakter.');
       } else if (error.code === 'auth/invalid-email') {
@@ -38,20 +34,16 @@ export default function Register() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6">Registrasi</h2>
-      
       {errorMessage && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {errorMessage}
           {errorMessage.includes('sudah terdaftar') && (
             <div className="mt-2">
-              <Link href="/login" className="text-blue-600 underline">
-                Login di sini
-              </Link>
+              <Link href="/login" className="text-blue-600 underline">Login di sini</Link>
             </div>
           )}
         </div>
       )}
-
       <form onSubmit={handleRegister} className="space-y-4">
         <input
           type="text"
@@ -78,7 +70,7 @@ export default function Register() {
           required
           minLength={6}
         />
-        <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">
+        <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition">
           Daftar
         </button>
       </form>
