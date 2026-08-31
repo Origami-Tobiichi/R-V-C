@@ -9,7 +9,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) router.push('/');
+    if (user) router.push('/profile'); // langsung ke profil untuk mengisi data
   }, [user, router]);
 
   return (
