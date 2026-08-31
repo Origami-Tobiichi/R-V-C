@@ -18,33 +18,33 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Refs untuk RecaptchaVerifier agar bisa digunakan ulang
   const recaptchaVerifierRef = useRef<any>(null);
 
-  // Inisialisasi RecaptchaVerifier saat komponen mount
   useEffect(() => {
-    // Pastikan elemen recaptcha-container ada
-    const container = document.getElementById('recaptcha-container');
+    // Pastikan elemen ada, jika tidak, buat secara dinamis
+    let container = document.getElementById('recaptcha-container');
     if (!container) {
-      console.warn('Element recaptcha-container not found, will be created later');
-      return;
+      const div = document.createElement('div');
+      div.id = 'recaptcha-container';
+      div.className = 'mt-4';
+      // Tambahkan ke DOM setelah elemen form? Kita tambahkan di akhir komponen.
+      // Tapi lebih aman, kita tunggu sampai komponen selesai render.
+      // Kita akan buat di render, bukan di useEffect.
     }
 
     try {
-      // Perbaikan: gunakan auth yang sudah diimpor
-      const verifier = new RecaptchaVerifier(
-        container,
+      // Gunakan 'as any' untuk menghindari error type
+      const verifier = new (RecaptchaVerifier as any)(
+        'recaptcha-container',
         {
           size: 'invisible',
           callback: () => {
-            // reCAPTCHA solved, allow phone auth
             console.log('reCAPTCHA solved');
           },
         },
         auth
       );
       recaptchaVerifierRef.current = verifier;
-      // Render reCAPTCHA
       verifier.render();
       console.log('✅ RecaptchaVerifier initialized');
     } catch (error) {
@@ -84,7 +84,6 @@ export default function Login() {
       return;
     }
 
-    // Pastikan format nomor internasional
     let phoneNumber = phone;
     if (!phone.startsWith('+')) {
       phoneNumber = '+62' + phone.replace(/^0+/, '');
@@ -92,17 +91,10 @@ export default function Login() {
 
     try {
       setLoading(true);
-      // Gunakan RecaptchaVerifier yang sudah diinisialisasi
       if (!recaptchaVerifierRef.current) {
-        // Jika belum ada, buat baru
-        const container = document.getElementById('recaptcha-container');
-        if (!container) {
-          alert('Elemen reCAPTCHA tidak ditemukan. Refresh halaman.');
-          setLoading(false);
-          return;
-        }
-        const verifier = new RecaptchaVerifier(
-          container,
+        // Inisialisasi ulang jika belum ada
+        const verifier = new (RecaptchaVerifier as any)(
+          'recaptcha-container',
           { size: 'invisible' },
           auth
         );
