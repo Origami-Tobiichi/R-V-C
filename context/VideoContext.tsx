@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 // @ts-ignore
 import Peer from 'peerjs';
-import { realtimeDb } from '../firebase/client';
+import { realtimeDb, firestore } from '../firebase/client';
 import { ref, push, onValue, remove, set } from 'firebase/database';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 interface VideoContextType {
@@ -13,6 +14,8 @@ interface VideoContextType {
   stopCall: () => void;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  preference: string;
+  setPreference: (val: string) => void;
 }
 
 const VideoContext = createContext<VideoContextType | null>(null);
@@ -22,13 +25,29 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [preference, setPreference] = useState('all'); // 'all', 'opposite', 'same'
 
   const peerRef = useRef<any>(null);
   const callRef = useRef<any>(null);
   const queueRef = useRef<any>(null);
   const matchListenerRef = useRef<any>(null);
 
-  // Inisialisasi PeerJS dan ambil media lokal
+  // Ambil data user dari Firestore
+  const getUserData = async (uid: string) => {
+    try {
+      const docRef = doc(firestore, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  // Inisialisasi PeerJS dan media
   useEffect(() => {
     if (!user) return;
 
@@ -54,7 +73,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
           }
         });
 
-        // Menangani panggilan masuk dari partner
         peer.on('call', (call: any) => {
           if (localStream) {
             call.answer(localStream);
@@ -63,8 +81,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
               setIsCalling(true);
             });
             callRef.current = call;
-          } else {
-            console.warn('localStream not ready yet');
           }
         });
 
@@ -76,12 +92,9 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Ambil akses kamera & mikrofon
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        setLocalStream(stream);
-      })
+      .then((stream) => setLocalStream(stream))
       .catch((err) => {
         console.error('Media error:', err);
         alert('Izin kamera/mikrofon diperlukan untuk video call.');
@@ -98,7 +111,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [user]);
 
-  // Fungsi toggle mikrofon
   const toggleMic = () => {
     if (localStream) {
       const audioTracks = localStream.getAudioTracks();
@@ -106,7 +118,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Fungsi toggle kamera
   const toggleCam = () => {
     if (localStream) {
       const videoTracks = localStream.getVideoTracks();
@@ -114,7 +125,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Mulai panggilan (cari partner)
   const startCall = async () => {
     if (!user) {
       alert('Silakan login terlebih dahulu.');
@@ -129,41 +139,81 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Ambil data gender user sendiri
+    const userData = await getUserData(user.uid);
+    const myGender = userData?.gender || '';
+
+    if (!myGender) {
+      alert('Silakan lengkapi profil (Gender) terlebih dahulu.');
+      return;
+    }
+
     try {
-      // Masukkan user ke antrian
+      // Masukkan ke antrian dengan gender
       const queueRefDb = ref(realtimeDb, 'queue');
       const newQueueRef = push(queueRefDb);
-      await set(newQueueRef, { uid: user.uid, timestamp: Date.now() });
+      await set(newQueueRef, {
+        uid: user.uid,
+        gender: myGender,
+        timestamp: Date.now(),
+      });
 
-      // Dengarkan kecocokan di node 'matches'
+      // Dengarkan kecocokan
       const matchRef = ref(realtimeDb, 'matches');
-      matchListenerRef.current = onValue(matchRef, (snapshot) => {
+      matchListenerRef.current = onValue(matchRef, async (snapshot) => {
         const matches = snapshot.val();
         if (!matches) return;
 
         for (const key in matches) {
           const match = matches[key];
-          // Jika user adalah user1 dan user2 sudah ada -> panggil user2
+          // Jika user adalah user1 dan user2 ada
           if (match.user1 === user.uid && match.user2) {
             const partnerId = match.user2;
-            remove(ref(realtimeDb, `matches/${key}`)); // hapus match setelah digunakan
-            if (localStream) {
-              const call = peerRef.current.call(partnerId, localStream);
-              if (call) {
-                callRef.current = call;
-                call.on('stream', (remoteStream: MediaStream) => {
-                  setRemoteStream(remoteStream);
-                  setIsCalling(true);
-                });
+            // Ambil data partner
+            const partnerData = await getUserData(partnerId);
+            const partnerGender = partnerData?.gender || '';
+
+            // Filter berdasarkan preferensi
+            let isMatch = false;
+            if (preference === 'all') isMatch = true;
+            else if (preference === 'opposite') isMatch = (myGender !== partnerGender);
+            else if (preference === 'same') isMatch = (myGender === partnerGender);
+
+            if (isMatch) {
+              remove(ref(realtimeDb, `matches/${key}`));
+              if (localStream) {
+                const call = peerRef.current.call(partnerId, localStream);
+                if (call) {
+                  callRef.current = call;
+                  call.on('stream', (remoteStream: MediaStream) => {
+                    setRemoteStream(remoteStream);
+                    setIsCalling(true);
+                  });
+                }
               }
+              break;
+            } else {
+              // Jika tidak cocok, hapus match dan biarkan user tetap di antrian
+              remove(ref(realtimeDb, `matches/${key}`));
             }
-            break;
           }
-          // Jika user adalah user2 dan user1 sudah ada -> tunggu dipanggil (ditangani oleh peer.on('call'))
+          // Jika user adalah user2 dan user1 ada
           else if (match.user2 === user.uid && match.user1) {
-            remove(ref(realtimeDb, `matches/${key}`));
-            // Panggilan masuk akan ditangani oleh event listener 'call' di atas
-            break;
+            const partnerId = match.user1;
+            const partnerData = await getUserData(partnerId);
+            const partnerGender = partnerData?.gender || '';
+
+            let isMatch = false;
+            if (preference === 'all') isMatch = true;
+            else if (preference === 'opposite') isMatch = (myGender !== partnerGender);
+            else if (preference === 'same') isMatch = (myGender === partnerGender);
+
+            if (isMatch) {
+              remove(ref(realtimeDb, `matches/${key}`));
+              // Panggilan akan ditangani oleh peer.on('call')
+            } else {
+              remove(ref(realtimeDb, `matches/${key}`));
+            }
           }
         }
       });
@@ -175,29 +225,20 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Hentikan panggilan
   const stopCall = () => {
-    // Tutup panggilan jika ada
     if (callRef.current) {
       callRef.current.close();
       callRef.current = null;
     }
-
-    // Hentikan remote stream
     if (remoteStream) {
       remoteStream.getTracks().forEach((track) => track.stop());
       setRemoteStream(null);
     }
-
     setIsCalling(false);
-
-    // Hapus dari antrian jika masih ada
     if (queueRef.current) {
       remove(ref(realtimeDb, `queue/${queueRef.current.key}`));
       queueRef.current = null;
     }
-
-    // Hentikan listener match
     if (matchListenerRef.current) {
       matchListenerRef.current();
       matchListenerRef.current = null;
@@ -214,6 +255,8 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
         stopCall,
         localStream,
         remoteStream,
+        preference,
+        setPreference,
       }}
     >
       {children}
