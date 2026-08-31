@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useVideo } from '../context/VideoContext';
 
 export default function VideoCall() {
+  const videoContext = useVideo();
+  // Guard: pastikan context tersedia
+  if (!videoContext) {
+    return <div className="text-center mt-10">Memuat video...</div>;
+  }
+
   const {
     localStream,
     remoteStream,
@@ -12,18 +18,21 @@ export default function VideoCall() {
     stopCall,
     preference,
     setPreference,
-  } = useVideo();
+  } = videoContext;
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
 
+  // Pasang stream lokal ke elemen video
   useEffect(() => {
     if (localStream && localVideoRef.current) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
+  // Pasang stream remote ke elemen video
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
@@ -45,9 +54,9 @@ export default function VideoCall() {
       <h1 className="text-2xl font-bold mb-4">Video Call Random</h1>
 
       {/* Preferensi gender */}
-      <div className="mb-4 flex gap-4 items-center">
+      <div className="mb-4 flex flex-wrap gap-4 items-center justify-center">
         <span className="font-medium">Cari:</span>
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1 cursor-pointer">
           <input
             type="radio"
             name="preference"
@@ -57,7 +66,7 @@ export default function VideoCall() {
           />
           Semua
         </label>
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1 cursor-pointer">
           <input
             type="radio"
             name="preference"
@@ -67,7 +76,7 @@ export default function VideoCall() {
           />
           Lawan Jenis
         </label>
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1 cursor-pointer">
           <input
             type="radio"
             name="preference"
@@ -79,6 +88,7 @@ export default function VideoCall() {
         </label>
       </div>
 
+      {/* Area video */}
       <div className="relative w-full max-w-4xl aspect-video bg-gray-800 rounded-lg overflow-hidden">
         {isCalling ? (
           <>
@@ -103,6 +113,7 @@ export default function VideoCall() {
         )}
       </div>
 
+      {/* Tombol kontrol */}
       <div className="flex flex-wrap gap-4 mt-4 justify-center">
         <button
           onClick={handleToggleMic}
