@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useVideo } from '../context/VideoContext';
 
 export default function VideoCall() {
   const { localStream, remoteStream, isCalling, toggleMic, toggleCam, startCall, stopCall } = useVideo();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  
+  // State lokal untuk mengontrol tampilan tombol
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
 
   useEffect(() => {
     if (localStream && localVideoRef.current) {
@@ -17,6 +21,16 @@ export default function VideoCall() {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
+
+  const handleToggleMic = () => {
+    toggleMic();
+    setMicOn(prev => !prev);
+  };
+
+  const handleToggleCam = () => {
+    toggleCam();
+    setCamOn(prev => !prev);
+  };
 
   return (
     <div className="flex flex-col items-center p-4">
@@ -32,10 +46,18 @@ export default function VideoCall() {
         )}
       </div>
       <div className="flex flex-wrap gap-4 mt-4 justify-center">
-        <button onClick={toggleMic} className="bg-gray-200 p-3 rounded-full shadow">🎤 {micOn ? 'On' : 'Off'}</button>
-        <button onClick={toggleCam} className="bg-gray-200 p-3 rounded-full shadow">📷 {camOn ? 'On' : 'Off'}</button>
-        <button onClick={startCall} className="bg-green-500 text-white px-6 py-2 rounded-full shadow">Next</button>
-        <button onClick={stopCall} className="bg-red-500 text-white px-6 py-2 rounded-full shadow">Stop</button>
+        <button onClick={handleToggleMic} className="bg-gray-200 p-3 rounded-full shadow">
+          🎤 {micOn ? 'On' : 'Off'}
+        </button>
+        <button onClick={handleToggleCam} className="bg-gray-200 p-3 rounded-full shadow">
+          📷 {camOn ? 'On' : 'Off'}
+        </button>
+        <button onClick={startCall} className="bg-green-500 text-white px-6 py-2 rounded-full shadow">
+          Next
+        </button>
+        <button onClick={stopCall} className="bg-red-500 text-white px-6 py-2 rounded-full shadow">
+          Stop
+        </button>
       </div>
     </div>
   );
