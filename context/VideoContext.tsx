@@ -22,8 +22,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
 
   const peerRef = useRef<any>(null);
   const callRef = useRef<any>(null);
@@ -31,13 +29,11 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
   const matchListenerRef = useRef<any>(null);
   const peerErrorCount = useRef(0);
 
-  // Inisialisasi PeerJS dengan server alternatif
   useEffect(() => {
     if (!user) return;
 
-    const initPeer = (retry = false) => {
+    const initPeer = () => {
       try {
-        // Gunakan server 0.peerjs.com sebagai alternatif
         const peer = new Peer(user.uid, {
           host: '0.peerjs.com',
           port: 443,
@@ -50,7 +46,7 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
 
         peer.on('open', (id: string) => {
           console.log('✅ PeerJS connected with ID:', id);
-          peerErrorCount.current = 0; // reset error count
+          peerErrorCount.current = 0;
         });
 
         peer.on('error', (err: any) => {
@@ -62,7 +58,7 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
               setTimeout(() => {
                 if (peerRef.current) {
                   peerRef.current.destroy();
-                  initPeer(true);
+                  initPeer();
                 }
               }, 2000);
             } else {
@@ -93,11 +89,8 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     const peer = initPeer();
     if (peer) peerRef.current = peer;
 
-    // Ambil media lokal
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        setLocalStream(stream);
-      })
+      .then((stream) => setLocalStream(stream))
       .catch((err) => {
         console.error('Media error:', err);
         alert('Izin kamera/mikrofon diperlukan untuk video call.');
@@ -115,7 +108,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     if (localStream) {
       const audioTracks = localStream.getAudioTracks();
       audioTracks.forEach(track => track.enabled = !track.enabled);
-      setMicOn(prev => !prev);
     }
   };
 
@@ -123,7 +115,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     if (localStream) {
       const videoTracks = localStream.getVideoTracks();
       videoTracks.forEach(track => track.enabled = !track.enabled);
-      setCamOn(prev => !prev);
     }
   };
 
@@ -141,12 +132,10 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Masukkan ke antrian
     const queueRefDb = ref(realtimeDb, 'queue');
     const newQueueRef = push(queueRefDb);
     await set(newQueueRef, { uid: user.uid, timestamp: Date.now() });
 
-    // Dengarkan kecocokan
     const matchRef = ref(realtimeDb, 'matches');
     matchListenerRef.current = onValue(matchRef, (snapshot) => {
       const matches = snapshot.val();
@@ -169,7 +158,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
           break;
         } else if (match.user2 === user.uid && match.user1) {
           remove(ref(realtimeDb, `matches/${key}`));
-          // akan ditangani oleh peer.on('call')
         }
       }
     });
