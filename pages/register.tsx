@@ -1,8 +1,8 @@
 import Register from '../components/Register';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/router';
 import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function RegisterPage() {
   const { user } = useAuth();
