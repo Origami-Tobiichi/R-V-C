@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase/client';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,39 +19,20 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const recaptchaVerifierRef = useRef<any>(null);
-
-  useEffect(() => {
-    // Pastikan elemen ada, jika tidak, buat secara dinamis
-    let container = document.getElementById('recaptcha-container');
+  // Fungsi untuk membuat RecaptchaVerifier
+  const getRecaptchaVerifier = () => {
+    // Pastikan container ada
+    const container = document.getElementById('recaptcha-container');
     if (!container) {
-      const div = document.createElement('div');
-      div.id = 'recaptcha-container';
-      div.className = 'mt-4';
-      // Tambahkan ke DOM setelah elemen form? Kita tambahkan di akhir komponen.
-      // Tapi lebih aman, kita tunggu sampai komponen selesai render.
-      // Kita akan buat di render, bukan di useEffect.
+      throw new Error('Elemen reCAPTCHA tidak ditemukan. Refresh halaman.');
     }
-
-    try {
-      // Gunakan 'as any' untuk menghindari error type
-      const verifier = new (RecaptchaVerifier as any)(
-        'recaptcha-container',
-        {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA solved');
-          },
-        },
-        auth
-      );
-      recaptchaVerifierRef.current = verifier;
-      verifier.render();
-      console.log('✅ RecaptchaVerifier initialized');
-    } catch (error) {
-      console.error('❌ Failed to initialize RecaptchaVerifier:', error);
-    }
-  }, []);
+    // Gunakan string selector, bukan elemen, untuk menghindari konflik tipe
+    return new RecaptchaVerifier(
+      'recaptcha-container',
+      { size: 'invisible' },
+      auth
+    );
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,29 +66,20 @@ export default function Login() {
       return;
     }
 
+    // Format nomor telepon internasional
     let phoneNumber = phone;
     if (!phone.startsWith('+')) {
       phoneNumber = '+62' + phone.replace(/^0+/, '');
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      if (!recaptchaVerifierRef.current) {
-        // Inisialisasi ulang jika belum ada
-        const verifier = new (RecaptchaVerifier as any)(
-          'recaptcha-container',
-          { size: 'invisible' },
-          auth
-        );
-        recaptchaVerifierRef.current = verifier;
-        await verifier.render();
-      }
+      // Buat RecaptchaVerifier baru setiap kali
+      const verifier = getRecaptchaVerifier();
+      // Render reCAPTCHA
+      await verifier.render();
 
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        recaptchaVerifierRef.current
-      );
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifier);
       setConfirmResult(confirmation);
       alert('Kode verifikasi dikirim ke ' + phoneNumber);
     } catch (error: any) {
@@ -115,6 +88,8 @@ export default function Login() {
         alert('Nomor telepon tidak valid. Gunakan format internasional (contoh: +62812...).');
       } else if (error.code === 'auth/too-many-requests') {
         alert('Terlalu banyak percobaan. Coba lagi nanti.');
+      } else if (error.message.includes('appVerificationDisabledForTesting')) {
+        alert('Gagal memverifikasi. Pastikan reCAPTCHA dimuat dan coba lagi.');
       } else {
         alert(error.message || 'Gagal mengirim kode verifikasi.');
       }
@@ -128,8 +103,8 @@ export default function Login() {
       alert('Masukkan kode verifikasi 6 digit.');
       return;
     }
+    setLoading(true);
     try {
-      setLoading(true);
       await confirmResult.confirm(verificationCode);
       router.push('/');
     } catch (error: any) {
@@ -214,10 +189,11 @@ export default function Login() {
         )}
       </div>
 
+      {/* Container untuk reCAPTCHA */}
       <div id="recaptcha-container" className="mt-4"></div>
 
       <p className="mt-4 text-center">
-        Belum punya akun? <a href="/register" className="text-blue-600 hover:underline">Daftar</a>
+        Belum punya akun? <Link href="/register" className="text-blue-600 hover:underline">Daftar</Link>
       </p>
     </div>
   );
