@@ -1,11 +1,11 @@
-import Login from '../components/Login';
+import Login from '../components/Login';   // path harus relative ke pages
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/router';
 import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function LoginPage() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // perbaiki: gunakan useAuth, bukan useState
   const router = useRouter();
 
   useEffect(() => {
