@@ -13,7 +13,6 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  // Ambil data profil saat komponen mount
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
@@ -28,7 +27,6 @@ export default function Profile() {
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        alert('Gagal mengambil data profil.');
       } finally {
         setLoading(false);
       }
@@ -41,9 +39,14 @@ export default function Profile() {
       alert('Silakan login terlebih dahulu.');
       return;
     }
+    if (!gender) {
+      alert('Pilih gender terlebih dahulu.');
+      return;
+    }
     setSaving(true);
     try {
       const docRef = doc(firestore, 'users', user.uid);
+      // Gunakan merge: true agar data lain tidak hilang
       await setDoc(docRef, { gender, age, country }, { merge: true });
       alert('Profil berhasil disimpan!');
       router.push('/');
