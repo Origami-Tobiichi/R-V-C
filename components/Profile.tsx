@@ -9,8 +9,11 @@ export default function Profile() {
   const [gender, setGender] = useState('');
   const [age, setAge] = useState('');
   const [country, setCountry] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
+  // Ambil data profil saat komponen mount
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
@@ -25,31 +28,41 @@ export default function Profile() {
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
+        alert('Gagal mengambil data profil.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchProfile();
   }, [user]);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      alert('Silakan login terlebih dahulu.');
+      return;
+    }
+    setSaving(true);
     try {
-      await setDoc(doc(firestore, 'users', user.uid), { gender, age, country }, { merge: true });
+      const docRef = doc(firestore, 'users', user.uid);
+      await setDoc(docRef, { gender, age, country }, { merge: true });
+      alert('Profil berhasil disimpan!');
       router.push('/');
     } catch (error) {
-      if (error instanceof Error) {
-        alert(error.message);
-      } else {
-        alert('Gagal menyimpan profil');
-      }
+      console.error('Error saving profile:', error);
+      alert('Gagal menyimpan profil. Coba lagi.');
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (loading) return <div className="text-center mt-10">Memuat profil...</div>;
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6">Profil</h2>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Gender</label>
+          <label className="block text-sm font-medium mb-1">Gender</label>
           <select
             value={gender}
             onChange={(e) => setGender(e.target.value)}
@@ -62,16 +75,17 @@ export default function Profile() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium">Usia</label>
+          <label className="block text-sm font-medium mb-1">Usia</label>
           <input
             type="number"
             value={age}
             onChange={(e) => setAge(e.target.value)}
+            placeholder="Masukkan usia"
             className="w-full p-2 border rounded"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium">Negara</label>
+          <label className="block text-sm font-medium mb-1">Negara</label>
           <input
             type="text"
             value={country}
@@ -80,8 +94,12 @@ export default function Profile() {
             className="w-full p-2 border rounded"
           />
         </div>
-        <button onClick={handleSave} className="w-full bg-blue-500 text-white py-2 rounded">
-          Simpan
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition disabled:opacity-50"
+        >
+          {saving ? 'Menyimpan...' : 'Simpan'}
         </button>
       </div>
     </div>
