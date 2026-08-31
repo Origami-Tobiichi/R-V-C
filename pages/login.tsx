@@ -1,8 +1,8 @@
 import Login from '../components/Login';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
 export default function LoginPage() {
   const { user } = useAuth();
