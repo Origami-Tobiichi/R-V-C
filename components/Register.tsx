@@ -17,7 +17,7 @@ export default function Register() {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName });
-      router.push('/profile'); // arahkan ke pengisian profil
+      router.push('/profile');
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         setErrorMessage('Email ini sudah terdaftar. Silakan login.');
@@ -75,7 +75,7 @@ export default function Register() {
         </button>
       </form>
       <p className="mt-4 text-center">
-        Sudah punya akun? <Link href="/login" className="text-blue-600">Login</Link>
+        Sudah punya akun? <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
       </p>
     </div>
   );
