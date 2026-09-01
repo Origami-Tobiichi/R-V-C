@@ -19,20 +19,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Fungsi untuk membuat RecaptchaVerifier dengan type assertion
-  const getRecaptchaVerifier = () => {
-    const container = document.getElementById('recaptcha-container');
-    if (!container) {
-      throw new Error('Elemen reCAPTCHA tidak ditemukan. Refresh halaman.');
-    }
-    // Gunakan 'as any' untuk menghindari konflik tipe TypeScript
-    return new (RecaptchaVerifier as any)(
-      'recaptcha-container',
-      { size: 'invisible' },
-      auth
-    );
-  };
-
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -59,6 +45,18 @@ export default function Login() {
     }
   };
 
+  const getRecaptchaVerifier = () => {
+    const container = document.getElementById('recaptcha-container');
+    if (!container) {
+      throw new Error('Elemen reCAPTCHA tidak ditemukan. Refresh halaman.');
+    }
+    return new (RecaptchaVerifier as any)(
+      'recaptcha-container',
+      { size: 'invisible' },
+      auth
+    );
+  };
+
   const handlePhoneLogin = async () => {
     if (!phone || phone.length < 10) {
       alert('Masukkan nomor telepon yang valid (minimal 10 digit).');
@@ -74,7 +72,6 @@ export default function Login() {
     try {
       const verifier = getRecaptchaVerifier();
       await verifier.render();
-
       const confirmation = await signInWithPhoneNumber(auth, phoneNumber, verifier);
       setConfirmResult(confirmation);
       alert('Kode verifikasi dikirim ke ' + phoneNumber);
@@ -84,8 +81,6 @@ export default function Login() {
         alert('Nomor telepon tidak valid. Gunakan format internasional (contoh: +62812...).');
       } else if (error.code === 'auth/too-many-requests') {
         alert('Terlalu banyak percobaan. Coba lagi nanti.');
-      } else if (error.message?.includes('appVerificationDisabledForTesting')) {
-        alert('Gagal memverifikasi. Pastikan reCAPTCHA dimuat dan coba lagi.');
       } else {
         alert(error.message || 'Gagal mengirim kode verifikasi.');
       }
