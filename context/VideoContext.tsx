@@ -25,25 +25,22 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCalling, setIsCalling] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [preference, setPreference] = useState('all'); // 'all', 'opposite', 'same'
+  const [preference, setPreference] = useState('all');
 
   const peerRef = useRef<any>(null);
   const callRef = useRef<any>(null);
   const queueRef = useRef<any>(null);
   const matchListenerRef = useRef<any>(null);
 
-  // Ambil data user dari Firestore
-  const getUserData = async (uid: string) => {
+  // Cek apakah user dibanned
+  const checkIfBanned = async (uid: string) => {
     try {
       const docRef = doc(firestore, 'users', uid);
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data();
-      }
-      return null;
+      return docSnap.exists() && docSnap.data().banned === true;
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      return null;
+      console.error('Error checking ban:', error);
+      return false;
     }
   };
 
@@ -125,11 +122,32 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Ambil data user dari Firestore
+  const getUserData = async (uid: string) => {
+    try {
+      const docRef = doc(firestore, 'users', uid);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists() ? docSnap.data() : null;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  // Mulai panggilan
   const startCall = async () => {
     if (!user) {
       alert('Silakan login terlebih dahulu.');
       return;
     }
+
+    // Cek apakah user dibanned
+    const isBanned = await checkIfBanned(user.uid);
+    if (isBanned) {
+      alert('Akun Anda telah dibanned oleh admin.');
+      return;
+    }
+
     if (!peerRef.current) {
       alert('PeerJS belum siap, tunggu sebentar.');
       return;
@@ -166,14 +184,11 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
 
         for (const key in matches) {
           const match = matches[key];
-          // Jika user adalah user1 dan user2 ada
           if (match.user1 === user.uid && match.user2) {
             const partnerId = match.user2;
-            // Ambil data partner
             const partnerData = await getUserData(partnerId);
             const partnerGender = partnerData?.gender || '';
 
-            // Filter berdasarkan preferensi
             let isMatch = false;
             if (preference === 'all') isMatch = true;
             else if (preference === 'opposite') isMatch = (myGender !== partnerGender);
@@ -193,12 +208,9 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
               }
               break;
             } else {
-              // Jika tidak cocok, hapus match dan biarkan user tetap di antrian
               remove(ref(realtimeDb, `matches/${key}`));
             }
-          }
-          // Jika user adalah user2 dan user1 ada
-          else if (match.user2 === user.uid && match.user1) {
+          } else if (match.user2 === user.uid && match.user1) {
             const partnerId = match.user1;
             const partnerData = await getUserData(partnerId);
             const partnerGender = partnerData?.gender || '';
@@ -210,7 +222,6 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (isMatch) {
               remove(ref(realtimeDb, `matches/${key}`));
-              // Panggilan akan ditangani oleh peer.on('call')
             } else {
               remove(ref(realtimeDb, `matches/${key}`));
             }
@@ -225,6 +236,7 @@ export const VideoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Hentikan panggilan
   const stopCall = () => {
     if (callRef.current) {
       callRef.current.close();
