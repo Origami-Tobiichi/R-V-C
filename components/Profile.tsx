@@ -46,7 +46,6 @@ export default function Profile() {
     setSaving(true);
     try {
       const docRef = doc(firestore, 'users', user.uid);
-      // Gunakan merge: true agar data lain tidak hilang
       await setDoc(docRef, { gender, age, country }, { merge: true });
       alert('Profil berhasil disimpan!');
       router.push('/');
