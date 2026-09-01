@@ -3,7 +3,6 @@ import { useVideo } from '../context/VideoContext';
 
 export default function VideoCall() {
   const videoContext = useVideo();
-  // Guard: pastikan context tersedia
   if (!videoContext) {
     return <div className="text-center mt-10">Memuat video...</div>;
   }
@@ -25,14 +24,12 @@ export default function VideoCall() {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
 
-  // Pasang stream lokal ke elemen video
   useEffect(() => {
     if (localStream && localVideoRef.current) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
-  // Pasang stream remote ke elemen video
   useEffect(() => {
     if (remoteStream && remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
@@ -50,7 +47,7 @@ export default function VideoCall() {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
+    <div className="flex flex-col items-center p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Video Call Random</h1>
 
       {/* Preferensi gender */}
@@ -88,29 +85,34 @@ export default function VideoCall() {
         </label>
       </div>
 
-      {/* Area video */}
-      <div className="relative w-full max-w-4xl aspect-video bg-gray-800 rounded-lg overflow-hidden">
-        {isCalling ? (
-          <>
+      {/* Dua layar: atas remote, bawah local */}
+      <div className="w-full bg-gray-900 rounded-lg overflow-hidden">
+        {/* Layar atas: remote video (partner) */}
+        <div className="relative w-full aspect-video bg-gray-800">
+          {isCalling ? (
             <video
               ref={remoteVideoRef}
               autoPlay
               playsInline
               className="w-full h-full object-cover"
             />
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute bottom-4 right-4 w-1/4 aspect-video bg-gray-700 rounded-lg border-2 border-white object-cover"
-            />
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-white text-xl">
-            {localStream ? 'Tekan Next untuk mulai' : 'Memuat kamera...'}
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-center h-full text-white text-xl">
+              {localStream ? 'Tekan Next untuk mulai' : 'Memuat kamera...'}
+            </div>
+          )}
+        </div>
+
+        {/* Layar bawah: local video (kamera sendiri) */}
+        <div className="w-full aspect-video bg-gray-700 border-t-2 border-gray-600">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
       {/* Tombol kontrol */}
